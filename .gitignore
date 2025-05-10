@@ -1,0 +1,10 @@
+*.iml
+.idea
+*.pyc
+.DS_Store
+__pycache__
+.vscode
+venv/
+*.tfvals
+.terraform
+state.tf
