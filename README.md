@@ -31,14 +31,17 @@ state file. You should change the password after creation.*
 
 This entire repo is meant to be a template and should be customized for specific application purposes.
 
+### Setup
 #### Pre-requisites:
+* terraform (version 0.11.0 or greater)
+* oci tenancy
+* oci CLI set up
 
-terraform (version 0.11.0 or greater)
-oci tenancy along with the oci cli configuration file that allows you to use session auth.
-
-Generate a "customer secret key" via the OCI console in your preferences. This is used for the S3 compatibility mode in
+#### Tenancy Preparation
+* subscribe to the desired region
+* create an object storage bucket to use for the terraform state files
+* Generate a "customer secret key" via the OCI console in your preferences. This is used for the S3 compatibility mode in
 object storage (so we can use the s3 backend for terraform). Put this in .aws/credentials. File should look like:
-
 ```
 [default]
 aws_access_key_id=< KEY ID OBTAINED FROM OCI CONSOLE>
@@ -47,12 +50,14 @@ request_checksum_calculation=when_required
 response_checksum_validation=when_required
 ```
 
+#### Terraform Setup
+
 Prior to running, log into oci via
 ```oci session authenticate``` (this will add the profile entry to your .oci/config file)
 otherwise you can refresh the session token by running any command. For instance
 ```oci os ns get``` (to get your object storage namespace)
 
-Create a varibles file in the terraform directory (myenv.tfvars) that contains the following
+Create a variables file in the terraform directory (myenv.tfvars) that contains the following:
 
 ```
 tenancy_ocid = <YOUR TENANCY OCID>
@@ -61,7 +66,7 @@ parent_compartment_ocid = <ROOT COMPARMENT UNDER WHICH EVERYTHING SHOULD BE CREA
 oci_profile_name =  <NAME OF PROFILE IN OCI CONFIG FILE>
 ```
 
-note: root compartment can be the tenancy ocid if you want everything to be created under the root
+*NOTE: root compartment can be the tenancy OCID if you want everything to be created under the root*
 
 Create a file called state.tf with the following values:
 
@@ -82,30 +87,45 @@ terraform{
     }
   }
 }
-
 ````
 
-initialize terraform
+#### Deploying the Infrstructure
+
+1. initialize terraform
 
 ```
 terraform init
 ```
 
-plan and deploy
+2. plan and deploy
 
 ```
 terraform plan -var-file freetier.tfvals
 terraform apply -var-file freetier.tfvals
 ```
 
-there seems to be a terraform bug that dis-associates the reserved public ip from the private ip. Manually fix with
+NOTE: there seems to be a terraform bug that dis-associates the reserved public ip from the private ip. Manually fix with
 
 ```
 oci network public-ip update --public-ip-id <publicIpOCID> --private-ip-id <privateIPOCID>
 ```
-
 if needed, get the private ip ocid via
 
 ```
 oci network private-ip list --subnet-id <public subnet ocid>
 ```
+
+
+### Using the Infrastructure
+Once the plan has completed, the environment is ready for use. You cannot directly SSH into the hosts, but instead must go through the bastion. You can do this by 
+creating a Bastion session (either in the OCI Console or via the CLI) and then using it as a jump host in the SSH command... for instance:
+
+The syntax for that is 
+```
+ssh -J <BASTION_SESSION_OCID>@host.bastion.<REGION>.oci.oraclecloud.com opc@<VM PRIVATE IP>
+```
+for instance:
+```
+ ssh -J ocid1.bastionsession.oc1.us-chicago-1.amaaaaaafb7qzgqaoevqycqnb4zhuslr7xmm6zubm4lc3f6fs3m24dfeeaaa@host.bastion.us-ashburn-1.oci.oraclecloud.com opc@10.0.2.111
+```
+Sessions are only valid for a limited time (3 hours).
