@@ -26,6 +26,9 @@ In addition to the resources above, an Autonomous Database instance will also be
 be set up to use a private endpoint, that option is not available for "always free" instances, thus the DB is set up to
 allow connections from anywhere.
 
+The database uses a randomly generated string as the admin password. *NOTE: This password will show up in your terraform
+state file. You should change the password after creation.*
+
 This entire repo is meant to be a template and should be customized for specific application purposes.
 
 #### Pre-requisites:
